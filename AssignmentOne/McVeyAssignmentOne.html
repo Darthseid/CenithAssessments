@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment One</title>
+    <style>
+        body
+		{
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container 
+		{
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        #player-stats 
+		{
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+        #map-representation 
+		{
+            margin-top: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre; /* Preserve whitespace for grid layout */
+            text-align: left;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #e9e9e9;
+            max-width: 600px; /* Increased width for 50x50 map view */
+            max-height: 500px; /* Increased height */
+            overflow: auto; /* Add scroll if map is larger than container */
+             line-height: 0.9; /* Reduce line height to fit more */
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Assignment One Game</h1>
+        <div id="player-stats">
+            <p>Health: <span id="player-health"></span></p>
+            <p>Moves: <span id="player-moves"></span></p>
+            <p>Coordinates: <span id="player-coords"></span></p>
+        </div>
+        <div id="map-representation">Loading map...</div>
+        <p>Use arrow keys to move. Shift + Left moves you Northwest. Shift + Right moves you Northeast. Ctrl + Left moves you Southwest. Ctrl + Right moves you Southeast.</p>
+    </div>
+
+    <script src="classes.js"></script>
+	<script src="functions.js"></script>
+	<script src="graphics.js"></script>
+</body>
+</html>

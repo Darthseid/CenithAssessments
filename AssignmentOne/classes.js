@@ -56,3 +56,10 @@ class Map
     }
   }
 }
+
+function updatePlayerStatsDisplay(player) 
+{
+    document.getElementById('player-health').textContent = player.health;
+    document.getElementById('player-moves').textContent = player.moves;
+    document.getElementById('player-coords').textContent = `[${player.coordinates[0]}, ${player.coordinates[1]}]`;
+}
