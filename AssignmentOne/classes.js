@@ -6,11 +6,12 @@ class Player
    * @param {number} moves - The initial number of moves the player has.
    * @param {number[]} coordinates - The initial [x, y] coordinates of the player.
    */
-  constructor(health, moves, coordinates)
+  constructor(health, moves, coordinates, activeGame)
   {
     this.health = health;
     this.moves = moves;
     this.coordinates = coordinates; // [x, y]
+	this.activeGame = activeGame;
   }
 }
 

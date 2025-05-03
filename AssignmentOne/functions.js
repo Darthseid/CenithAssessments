@@ -50,6 +50,11 @@ function executeTile(player, map)
     console.log("Player is not on a recognized tile.");
   }
   console.log(`Player Stats: Health = ${player.health}, Moves = ${player.moves}`);
+   // Check for game over condition at the end of tile execution
+  if (player.health <= 0 || player.moves <= 0) 
+  {
+    gameOver(player); // Pass player to gameOver function
+  }
 }
 
 /**
@@ -57,7 +62,21 @@ function executeTile(player, map)
  */
 function victory() 
 {
+   player.activeGame = false;
   alert("Congratulations, you won!");
+  setTimeout(() => 
+  {
+    window.location.reload(); // Refreshes the page
+  }, 5000); // 5000 milliseconds = 5 seconds
+}
+/**
+ * Handles the game over condition.
+ * @param {Player} player - The player object.
+ */
+function gameOver(player)
+ {
+  player.activeGame = false;
+  alert("Game Over");
   setTimeout(() => 
   {
     window.location.reload(); // Refreshes the page
