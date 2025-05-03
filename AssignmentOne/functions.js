@@ -82,3 +82,57 @@ function gameOver(player)
     window.location.reload(); // Refreshes the page
   }, 5000); // 5000 milliseconds = 5 seconds
 }
+
+/**
+ * Generates a 50x50 game map with a start and end tile.
+ * @param {number} seed - The seed for random map generation.
+ * @returns {Map} The generated map object.
+ */
+function generateMap(seed)
+ {
+  const map = new Map(seed);
+  const mapWidth = 50;
+  const mapHeight = 50;
+  const random = (max) => Math.floor(((Math.sin(seed++) * 10000) % 1) * max); // Basic pseudo-randomness based on the seed. JS isn't great with this.
+  for (let y = 0; y < mapHeight; y++) 
+  {
+    for (let x = 0; x < mapWidth; x++) 
+	{
+      let tileName = "Blank"; // Default tile
+      if (x === 0 && y === 0) 
+	  {
+        tileName = "Blank"; // Start tile is always blank
+      } else if (x === mapWidth - 1 && y === mapHeight - 1) 
+	  {
+        tileName = "Victory"; // End tile is always Victory
+      } else 
+	  {
+        const tileType = random(100);
+        if (tileType <= 24) 
+		{
+          tileName = "Blank";
+        } else if (tileType > 24 && tileType < 50) //25-49
+		{
+          tileName = "Speeder";
+        } else if (tileType > 49 && tileType < 75) //50-74
+		{
+          tileName = "Mud";
+        }
+		else
+		{
+			tileType = "Lava"; //Fallback tile.
+		}
+      }
+      map.addTile(new Tile(tileName, [x, y]));
+    }
+  }
+  return map;
+}
+
+/**
+ * Initializes a new player with starting stats and position.
+ * @returns {Player} The initialized player object.
+ */
+function initializePlayer() {
+  return new Player(200, 450, [0, 0]);
+}
