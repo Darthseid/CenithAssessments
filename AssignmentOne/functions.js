@@ -78,7 +78,7 @@ function victory(player)
   alert("Congratulations, you won!");
   setTimeout(() => 
   {
-    window.location.reload(); // Refreshes the page
+    StartGame(); // Refreshes the page
   }, 5000); // 5000 milliseconds = 5 seconds
 }
 /**
@@ -92,7 +92,7 @@ function gameOver(player)
   alert("Game Over");
   setTimeout(() => 
   {
-    window.location.reload(); // Refreshes the page
+	StartGame(); // Refreshes the page
   }, 5000); // 5000 milliseconds = 5 seconds
 }
 

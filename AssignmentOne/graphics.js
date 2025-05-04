@@ -46,16 +46,22 @@ function getTileImage(tileName)
 }
 
 let gameMap;
+let seed;
 let gamePlayer; // Global game objects 
 
-window.addEventListener('DOMContentLoaded', () => 
+function StartGame() 
 {
-    gameMap = generateMap(Date.now());
+    seed = Date.now(); // Use fresh seed
+    gameMap = generateMap(seed);
     gamePlayer = initializePlayer();
     renderMap(gameMap, gamePlayer);
     updatePlayerStatsDisplay(gamePlayer);
-});
+}
 
+window.addEventListener('DOMContentLoaded', () => {
+    StartGame();
+    document.getElementById('restart-button').addEventListener('click', StartGame);
+});
 
 /**
  * Handles player movement based on arrow key presses and modifier keys.
