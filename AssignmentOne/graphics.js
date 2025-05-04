@@ -5,48 +5,62 @@
  */
 function renderMap(map, player) 
 {
-    let mapText = '';
+    const container = document.getElementById('map-representation');
+    container.innerHTML = ''; // Clear old map
     for (let y = 0; y < map.height; y++) 
 	{
+        const row = document.createElement('div');
+        row.style.display = 'flex';
         for (let x = 0; x < map.width; x++) 
 		{
-            if (player.coordinates[0] === x && player.coordinates[1] === y) 
-			{
-                mapText += ' P '; // Represent player
+            const img = document.createElement('img');
+            img.width = 16;
+            img.height = 16;
+            if (player.coordinates[0] === x && player.coordinates[1] === y) {
+                img.src = 'Car.jpg'; // Player image
+                img.alt = 'P';
             } else 
 			{
-                 const tile = map.getTileAt(x, y);
-                 if (tile) 
-				 { // Use a simple character to represent different tile types               
+                const tile = map.getTileAt(x, y);
+                if (tile) 
+				{
                     switch (tile.name) 
 					{
                         case "Blank":
-                            mapText += ' . ';
+                            img.src = 'Blank.jpg';
+                            img.alt = '.';
                             break;
                         case "Speeder":
-                            mapText += ' S ';
+                            img.src = 'Speeder.png';
+                            img.alt = 'S';
                             break;
                         case "Lava":
-                            mapText += ' L ';
+                            img.src = 'lava.png';
+                            img.alt = 'L';
                             break;
                         case "Mud":
-                            mapText += ' M ';
+                            img.src = 'Mud.jpg';
+                            img.alt = 'M';
                             break;
                         case "Victory":
-                            mapText += ' V ';
+                            img.src = 'Finish.png';
+                            img.alt = 'V';
                             break;
                         default:
-                            mapText += ' ? ';
+                            img.src = 'unknown.png';
+                            img.alt = '?';
                             break;
                     }
-                 } else {
-                    mapText += ' ? '; // If you see this, that's an error.
-                 }
+                } else 
+				{
+                    img.src = 'unknown.png';
+                    img.alt = '?';
+                }
             }
+            row.appendChild(img);
         }
-        mapText += '\n'; // New line for each row
+        container.appendChild(row);
     }
-    document.getElementById('map-representation').textContent = mapText;
 }
 
 
