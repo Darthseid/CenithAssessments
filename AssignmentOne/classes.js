@@ -29,33 +29,38 @@ class Tile
   }
 }
 
-class Map 
-{
+class Map {
   /**
-   * Creates an instance of Map.
-   * @param {number} seed - The seed used for map generation.
+   * @param {number} seed
+   * @param {number} width
+   * @param {number} height
    */
-  constructor(seed)
+  constructor(seed, width, height) 
   {
     this.seed = seed;
-    this.tiles = []; // An array to hold Tile objects
+    this.width = width;
+    this.height = height;
+    this.tiles = [];
   }
 
-  /**
-   * Adds a tile to the map.
-   * @param {Tile} tile - The tile to add to the map.
-   */
   addTile(tile) 
   {
-    if (tile instanceof Tile) 
-	{
+    if (tile instanceof Tile)
+		{
       this.tiles.push(tile);
-    } else 
-	{
-      console.error("Invalid object. Only Tile instances can be added to the map's tiles array.");
+    } else {
+      console.error("Only Tile instances allowed.");
     }
   }
+
+  getTileAt(x, y) 
+  {
+    return this.tiles.find(tile => 
+      tile.coordinates[0] === x && tile.coordinates[1] === y
+    );
+  }
 }
+
 
 function updatePlayerStatsDisplay(player) 
 {

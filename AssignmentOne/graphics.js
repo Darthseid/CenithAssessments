@@ -54,15 +54,15 @@ let gameMap;
 let gamePlayer; // Global game objects 
 
 
-document.addEventListener('DOMContentLoaded', () => {
-    const gameSeed = Math.random(); // Use a random seed for each game
-    gameMap = generateMap(gameSeed);
-    gamePlayer = initializePlayer(); // Game Initialization on page load
-
-
-    updatePlayerStatsDisplay(gamePlayer);     // Initial display update and map render
+window.addEventListener('DOMContentLoaded', () => {
+    const gameMap = generateMap(123);
+    const gamePlayer = initializePlayer();
     renderMap(gameMap, gamePlayer);
+    updatePlayerStatsDisplay(gamePlayer);
+    window.gameMap = gameMap;
+    window.gamePlayer = gamePlayer;
 });
+
 
 /**
  * Handles player movement based on arrow key presses and modifier keys.

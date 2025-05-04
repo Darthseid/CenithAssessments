@@ -49,8 +49,7 @@ function executeTile(player, map)
   {
     console.log("Player is not on a recognized tile.");
   }
-  console.log(`Player Stats: Health = ${player.health}, Moves = ${player.moves}`);
-   // Check for game over condition at the end of tile execution
+ updatePlayerStatsDisplay(gamePlayer); // Use the global gamePlayer object
   if (player.health <= 0 || player.moves <= 0) 
   {
     gameOver(player); // Pass player to gameOver function
@@ -90,19 +89,19 @@ function gameOver(player)
  */
 function generateMap(seed)
  {
-  const map = new Map(seed);
-  const mapWidth = 50;
-  const mapHeight = 50;
-  const random = (max) => Math.floor(((Math.sin(seed++) * 10000) % 1) * max); // Basic pseudo-randomness based on the seed. JS isn't great with this.
-  for (let y = 0; y < mapHeight; y++) 
+  const width = 50;
+  const height = 50;
+  const map = new Map(seed, width, height);
+const random = (max) => {seed = (seed * 9301 + 49297) % 233280; return Math.floor((seed / 233280) * max); }; //LCG Formula.
+  for (let y = 0; y < height; y++) 
   {
-    for (let x = 0; x < mapWidth; x++) 
+    for (let x = 0; x < width; x++) 
 	{
       let tileName = "Blank"; // Default tile
       if (x === 0 && y === 0) 
 	  {
         tileName = "Blank"; // Start tile is always blank
-      } else if (x === mapWidth - 1 && y === mapHeight - 1) 
+      } else if (x === width - 1 && y === height - 1) 
 	  {
         tileName = "Victory"; // End tile is always Victory
       } else 
@@ -120,7 +119,7 @@ function generateMap(seed)
         }
 		else
 		{
-			tileType = "Lava"; //Fallback tile.
+			tileName = "Lava"; //Fallback tile.
 		}
       }
       map.addTile(new Tile(tileName, [x, y]));
