@@ -3,59 +3,29 @@
  * @param {Map} map - The map object.
  * @param {Player} player - The player object.
  */
-function renderMap(map, player) 
-{
+function renderMap(map, player) {
     const container = document.getElementById('map-representation');
-    container.innerHTML = ''; // Clear old map
-    for (let y = 0; y < map.height; y++) 
-	{
+    container.innerHTML = '';
+
+    for (let y = 0; y < map.height; y++) {
         const row = document.createElement('div');
         row.style.display = 'flex';
-        for (let x = 0; x < map.width; x++) 
-		{
+
+        for (let x = 0; x < map.width; x++) {
             const img = document.createElement('img');
             img.width = 16;
             img.height = 16;
-            if (player.coordinates[0] === x && player.coordinates[1] === y) {
-                img.src = 'Car.jpg'; // Player image
+            img.id = `tile-${x}-${y}`;
+
+            if (player.coordinates[0] === x && player.coordinates[1] === y) 
+			{
+                img.src = 'Car.jpg';
                 img.alt = 'P';
             } else 
 			{
                 const tile = map.getTileAt(x, y);
-                if (tile) 
-				{
-                    switch (tile.name) 
-					{
-                        case "Blank":
-                            img.src = 'Blank.jpg';
-                            img.alt = '.';
-                            break;
-                        case "Speeder":
-                            img.src = 'Speeder.png';
-                            img.alt = 'S';
-                            break;
-                        case "Lava":
-                            img.src = 'lava.png';
-                            img.alt = 'L';
-                            break;
-                        case "Mud":
-                            img.src = 'Mud.jpg';
-                            img.alt = 'M';
-                            break;
-                        case "Victory":
-                            img.src = 'Finish.png';
-                            img.alt = 'V';
-                            break;
-                        default:
-                            img.src = 'unknown.png';
-                            img.alt = '?';
-                            break;
-                    }
-                } else 
-				{
-                    img.src = 'unknown.png';
-                    img.alt = '?';
-                }
+                img.src = getTileImage(tile.name);
+                img.alt = tile?.name?.[0] ?? '?';
             }
             row.appendChild(img);
         }
@@ -63,12 +33,23 @@ function renderMap(map, player)
     }
 }
 
+function getTileImage(tileName) 
+{
+    switch (tileName) {
+        case "Blank": return 'Blank.jpg';
+        case "Speeder": return 'Speeder.png';
+        case "Lava": return 'lava.png';
+        case "Mud": return 'Mud.jpg';
+        case "Victory": return 'Finish.png';
+        default: return 'unknown.png';
+    }
+}
 
 let gameMap;
 let gamePlayer; // Global game objects 
 
-
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', () => 
+{
     gameMap = generateMap(Date.now());
     gamePlayer = initializePlayer();
     renderMap(gameMap, gamePlayer);
@@ -138,23 +119,40 @@ function handlePlayerMovement(event)
         }
     }
 
-    if (moved) 
+if (moved) 
+{
+    const oldX = gamePlayer.coordinates[0];
+    const oldY = gamePlayer.coordinates[1];
+    const newX = oldX + deltaX;
+    const newY = oldY + deltaY;
+    const isMoveValid = newX >= 0 && newX < gameMap.width &&
+                        newY >= 0 && newY < gameMap.height;
+    if (isMoveValid) 
 	{
-        const newX = gamePlayer.coordinates[0] + deltaX;
-        const newY = gamePlayer.coordinates[1] + deltaY; // If a valid movement key combination was pressed
-        const isMoveValid = newX >= 0 && newX < gameMap.width &&
-                             newY >= 0 && newY < gameMap.height; // Check if the new coordinates are within map bounds
+        gamePlayer.coordinates = [newX, newY];
+        executeTile(gamePlayer, gameMap);
+        updatePlayerPosition(oldX, oldY, newX, newY, gameMap);
+    } else 
+	{
+        console.log("Cannot move off the map.");
+    }
+    event.preventDefault();
+}
+    }
+window.addEventListener('keydown', handlePlayerMovement); // Add event listener for player movement
 
-        if (isMoveValid) 
-		{
-            gamePlayer.coordinates = [newX, newY];
-            executeTile(gamePlayer, gameMap); // Execute tile effect after moving
-            renderMap(gameMap, gamePlayer); // Re-render map after movement
-        } else 
-		{
-            console.log("Cannot move off the map.");
-        }
-        event.preventDefault(); // Prevent default arrow key scrolling
+function updatePlayerPosition(oldX, oldY, newX, newY, map)
+ {
+    const oldTile = map.getTileAt(oldX, oldY);
+    const oldImg = document.getElementById(`tile-${oldX}-${oldY}`);
+    if (oldImg && oldTile) {
+        oldImg.src = getTileImage(oldTile.name);
+        oldImg.alt = oldTile.name[0];
+    }
+
+    const newImg = document.getElementById(`tile-${newX}-${newY}`);
+    if (newImg) {
+        newImg.src = 'Car.jpg';
+        newImg.alt = 'P';
     }
 }
-window.addEventListener('keydown', handlePlayerMovement); // Add event listener for player movement

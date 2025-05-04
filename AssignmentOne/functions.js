@@ -1,3 +1,10 @@
+function updatePlayerStatsDisplay(player) 
+{
+    document.getElementById('player-health').textContent = player.health;
+    document.getElementById('player-moves').textContent = player.moves;
+    document.getElementById('player-coords').textContent = `[${player.coordinates[0]}, ${player.coordinates[1]}]`;
+}
+
 /**
  * Executes the action associated with the tile the player is currently on.
  * @param {Player} player - The player object.
@@ -16,33 +23,38 @@ function executeTile(player, map)
     switch (currentTile.name) 
 	{
       case "Blank":
-        player.moves -= 1;
+        playSound('movement.mp3');
+        player.moves = Math.max(0, player.moves - 1); // Ensure moves don't go below zero
         console.log("Moves reduced by 1.");
         break;
-      case "Speeder":
-        player.health -= 5;
+      case "Speeder": // Note: Case names should match tile names generated in generateMap
+        playSound('speeding.mp3'); 
+        player.health = Math.max(0, player.health - 5); // Ensure health doesn't go below zero
         console.log("Health reduced by 5.");
         break;
-      case "Lava":
-        player.health -= 50;
-        player.moves -= 10;
+      case "Lava": 
+        playSound('lava.mp3'); 
+        player.health = Math.max(0, player.health - 50);
+        player.moves = Math.max(0, player.moves - 10);
         console.log("Health reduced by 50, Moves reduced by 10.");
         break;
-      case "Mud":
-        player.health -= 10;
-        player.moves -= 5;
+      case "Mud": 
+        playSound('dirtpath.mp3'); // Play sound
+        player.health = Math.max(0, player.health - 10);
+        player.moves = Math.max(0, player.moves - 5);
         console.log("Health reduced by 10, Moves reduced by 5.");
         break;
-      case "Victory":
-        player.moves -= 1;
-        console.log("Moves reduced by 1.");
-        if (player.moves >= 0) 
+      case "Victory": 
+         player.moves = Math.max(0, player.moves - 1); // Reduce moves for the tile
+        console.log("Moved to Victory."); // Check victory condition AFTER reducing moves for the tile
+        if (player.moves > 0) 
 		{
-          victory();
-        } 
-        break;
-      default:
-        console.log("Player is on an unknown tile type.");
+          victory(gamePlayer); // Use the global gamePlayer object
+          return; // Stop further execution in this call if won
+        } else 
+		{
+             console.log("Reached Victory Tile but not enough moves left for the tile's effect.");
+        }
         break;
     }
   } else 
@@ -59,9 +71,10 @@ function executeTile(player, map)
 /**
  * Handles the victory condition of the game.
  */
-function victory() 
+function victory(player) 
 {
    player.activeGame = false;
+   playSound('congratulations.mp3'); // Play victory sound
   alert("Congratulations, you won!");
   setTimeout(() => 
   {
@@ -75,6 +88,7 @@ function victory()
 function gameOver(player)
  {
   player.activeGame = false;
+  playSound('failure.mp3'); // Play victory sound
   alert("Game Over");
   setTimeout(() => 
   {
@@ -132,6 +146,16 @@ const random = (max) => {seed = (seed * 9301 + 49297) % 233280; return Math.floo
  * Initializes a new player with starting stats and position.
  * @returns {Player} The initialized player object.
  */
-function initializePlayer() {
+function initializePlayer() 
+{
   return new Player(200, 450, [0, 0], true);
+}
+
+function playSound(soundFile) 
+{
+    const audio = new Audio(soundFile);
+    audio.play().catch(error => 
+	{
+        console.error("Error playing sound:", soundFile, error); // This catch is important because browsers might block autoplay  until the user interacts with the page.
+    });
 }
