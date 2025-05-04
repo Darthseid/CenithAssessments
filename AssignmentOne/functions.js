@@ -133,5 +133,5 @@ const random = (max) => {seed = (seed * 9301 + 49297) % 233280; return Math.floo
  * @returns {Player} The initialized player object.
  */
 function initializePlayer() {
-  return new Player(200, 450, [0, 0]);
+  return new Player(200, 450, [0, 0], true);
 }

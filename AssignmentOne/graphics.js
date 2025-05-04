@@ -55,12 +55,10 @@ let gamePlayer; // Global game objects
 
 
 window.addEventListener('DOMContentLoaded', () => {
-    const gameMap = generateMap(123);
-    const gamePlayer = initializePlayer();
+    gameMap = generateMap(Date.now());
+    gamePlayer = initializePlayer();
     renderMap(gameMap, gamePlayer);
     updatePlayerStatsDisplay(gamePlayer);
-    window.gameMap = gameMap;
-    window.gamePlayer = gamePlayer;
 });
 
 
