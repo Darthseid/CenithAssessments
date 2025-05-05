@@ -1,11 +1,8 @@
-# file: grid_game.py
-
 import tkinter as tk
 import random
 import os
 from PIL import Image, ImageTk
-from playsound import playsound
-import threading
+import pygame.mixer
 
 GRID_SIZE = 50
 TILE_SIZE = 10
@@ -18,7 +15,6 @@ TILE_COLORS = {
     "Speeder": "blue",
     "Lava": "red",
     "Mud": "brown",
-    "Player": "green",
     "Goal": "gold",
 }
 
@@ -30,27 +26,39 @@ TILE_EFFECTS = {
 }
 
 IMG_CACHE = {}
+SOUND_CACHE = {}
 
 def load_image(name):
     try:
         if name in IMG_CACHE:
             return IMG_CACHE[name]
         path = os.path.join("assets", "img", f"{name}.png")
+        if not os.path.exists(path):
+             return None
         img = Image.open(path).resize((TILE_SIZE, TILE_SIZE))
         tk_img = ImageTk.PhotoImage(img)
         IMG_CACHE[name] = tk_img
         return tk_img
-    except:
+    except Exception as e:
+        return None
+
+def load_sound(name):
+    if name in SOUND_CACHE:
+        return SOUND_CACHE[name]
+    try:
+        path = os.path.join("assets", "snd", f"{name}.mp3")
+        if not os.path.exists(path):
+            return None
+        sound = pygame.mixer.Sound(path)
+        SOUND_CACHE[name] = sound
+        return sound
+    except Exception as e:
         return None
 
 def play_sound(name):
-    def inner():
-        try:
-            path = os.path.join("assets", "snd", f"{name}.mp3")
-            playsound(path)
-        except:
-            pass
-    threading.Thread(target=inner, daemon=True).start()
+    sound = load_sound(name)
+    if sound:
+        sound.play()
 
 class GridGame:
     def __init__(self, root):
@@ -61,6 +69,11 @@ class GridGame:
         self.restart_button = tk.Button(root, text="Restart Game", command=self.restart_game)
         self.restart_button.pack(pady=5)
 
+        try:
+            pygame.mixer.init()
+        except Exception as e:
+            pass
+
         self.init_game()
 
         self.root.bind("<KeyPress>", self.handle_key)
@@ -68,8 +81,9 @@ class GridGame:
     def init_game(self):
         self.health = HEALTH_INIT
         self.moves = MOVES_INIT
-        self.player_pos = [0, GRID_SIZE // 2]
-        self.goal_pos = [GRID_SIZE - 1, GRID_SIZE // 2]
+        self.player_pos = [0, 0]
+        self.goal_pos = [GRID_SIZE - 1, GRID_SIZE - 1]
+        self.game_active = True
 
         self.grid = [[random.choice(TILE_TYPES) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
         self.grid[self.player_pos[1]][self.player_pos[0]] = "Blank"
@@ -79,51 +93,84 @@ class GridGame:
         self.update_status()
 
     def restart_game(self):
+        self.canvas.delete("all")
         self.init_game()
 
     def draw_grid(self):
-        self.canvas.delete("all")
+        self.canvas.delete("tiles", "player_image")
+
         for y in range(GRID_SIZE):
             for x in range(GRID_SIZE):
-                tile = self.grid[y][x]
-                img = load_image(tile)
+                tile_type = self.grid[y][x]
+                img = load_image(tile_type)
                 if img:
-                    self.canvas.create_image(x*TILE_SIZE, y*TILE_SIZE, anchor='nw', image=img)
+                    self.canvas.create_image(x*TILE_SIZE, y*TILE_SIZE, anchor='nw', image=img, tags="tiles")
                 else:
-                    color = TILE_COLORS.get(tile, "white")
+                    color = TILE_COLORS.get(tile_type, "white")
                     self.canvas.create_rectangle(
                         x*TILE_SIZE, y*TILE_SIZE,
                         (x+1)*TILE_SIZE, (y+1)*TILE_SIZE,
-                        fill=color, outline="gray"
+                        fill=color, outline="gray", tags="tiles"
                     )
 
         px, py = self.player_pos
-        self.canvas.create_rectangle(
-            px*TILE_SIZE, py*TILE_SIZE,
-            (px+1)*TILE_SIZE, (py+1)*TILE_SIZE,
-            fill=TILE_COLORS["Player"]
-        )
+        player_img = load_image("car")
+        if player_img:
+            self.canvas.create_image(px*TILE_SIZE, py*TILE_SIZE, anchor='nw', image=player_img, tags="player_image")
+        else:
+             self.canvas.create_rectangle(
+                px*TILE_SIZE, py*TILE_SIZE,
+                (px+1)*TILE_SIZE, (py+1)*TILE_SIZE,
+                fill="green", tags="player_image"
+            )
 
     def update_status(self):
-        self.root.title(f"Health: {self.health} | Moves: {self.moves}")
+        self.root.title(f"Health: {self.health} | Moves: {self.moves} | Pos: ({self.player_pos[0]}, {self.player_pos[1]})")
 
     def handle_key(self, event):
+        if not self.game_active:
+            return
+
         dx, dy = 0, 0
-        if event.keysym == "Up": dy = -1
-        elif event.keysym == "Down": dy = 1
-        elif event.keysym == "Left": dx = -1
-        elif event.keysym == "Right": dx = 1
+        moved = False
 
-        if dx != 0:
-            if event.state & 0x0001:  # Shift held
+        if event.keysym == "Up":
+            dy = -1
+            moved = True
+        elif event.keysym == "Down":
+            dy = 1
+            moved = True
+        elif event.keysym == "Left":
+            dx = -1
+            moved = True
+        elif event.keysym == "Right":
+            dx = 1
+            moved = True
+
+        if event.state & 0x0001:
+            if event.keysym == "Right":
+                dx = 1
                 dy = -1
-            elif event.state & 0x0004:  # Ctrl held
+                moved = True
+            elif event.keysym == "Left":
+                dx = -1
+                dy = -1
+                moved = True
+        elif event.state & 0x0004:
+             if event.keysym == "Right":
+                dx = 1
                 dy = 1
+                moved = True
+             elif event.keysym == "Left":
+                dx = -1
+                dy = 1
+                moved = True
 
-        self.move(dx, dy)
+        if moved:
+            self.move(dx, dy)
 
     def move(self, dx, dy):
-        if self.health <= 0 or self.moves <= 0:
+        if not self.game_active:
             return
 
         new_x = self.player_pos[0] + dx
@@ -132,25 +179,37 @@ class GridGame:
         if not (0 <= new_x < GRID_SIZE and 0 <= new_y < GRID_SIZE):
             return
 
-        tile = self.grid[new_y][new_x]
-        effects = TILE_EFFECTS.get(tile, {"Health": 0, "Moves": 0})
+        tile_type = self.grid[new_y][new_x]
+
+        effects = TILE_EFFECTS.get(tile_type, {"Health": 0, "Moves": 0})
         self.health += effects["Health"]
         self.moves += effects["Moves"]
         self.player_pos = [new_x, new_y]
 
-        play_sound(tile)
+        play_sound(tile_type)
 
         self.update_status()
         self.draw_grid()
 
         if self.player_pos == self.goal_pos:
-            play_sound("Goal")
-            self.end_game("You Win!")
+            if self.moves >= 0:
+                self.end_game("You Win!")
+            else:
+                self.end_game("Game Over! (Out of moves at goal)")
         elif self.health <= 0 or self.moves <= 0:
-            play_sound("Failure")
-            self.end_game("Game Over!")
+             self.end_game("Game Over!")
 
     def end_game(self, message):
+        if not self.game_active:
+            return
+
+        self.game_active = False
+
+        if "Win" in message:
+            play_sound("Victory")
+        else:
+            play_sound("Failure")
+
         self.canvas.create_text(
             GRID_SIZE * TILE_SIZE // 2,
             GRID_SIZE * TILE_SIZE // 2,
@@ -159,3 +218,9 @@ class GridGame:
             fill="black"
         )
         self.root.after(5000, self.restart_game)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Grid Game")
+    game = GridGame(root)
+    root.mainloop()
