@@ -1,162 +1,161 @@
-# tkinter_version.py
-import tkinter as tk
-from tkinter import messagebox
-import random
+# file: grid_game.py
 
-TILE_SIZE = 16
-TILE_IMAGES = {
-    "Blank": "Blank.gif",
-    "Speeder": "Speeder.gif",
-    "Lava": "Lava.gif",
-    "Mud": "Mud.gif",
-    "Victory": "Finish.gif",
-    "Player": "Car.gif"
+import tkinter as tk
+import random
+import os
+from PIL import Image, ImageTk
+from playsound import playsound
+import threading
+
+GRID_SIZE = 50
+TILE_SIZE = 10
+HEALTH_INIT = 200
+MOVES_INIT = 450
+
+TILE_TYPES = ["Blank", "Speeder", "Lava", "Mud"]
+TILE_COLORS = {
+    "Blank": "white",
+    "Speeder": "blue",
+    "Lava": "red",
+    "Mud": "brown",
+    "Player": "green",
+    "Goal": "gold",
 }
 
-class Player:
-    def __init__(self, health, moves, coordinates):
-        self.health = health
-        self.moves = moves
-        self.coordinates = coordinates
-        self.active_game = True
+TILE_EFFECTS = {
+    "Blank": {"Health": 0, "Moves": -1},
+    "Speeder": {"Health": -5, "Moves": 0},
+    "Lava": {"Health": -50, "Moves": -10},
+    "Mud": {"Health": -10, "Moves": -5},
+}
 
-class Tile:
-    def __init__(self, name, coordinates):
-        self.name = name
-        self.coordinates = coordinates
+IMG_CACHE = {}
 
-class Map:
-    def __init__(self, seed, width, height):
-        self.seed = seed
-        self.width = width
-        self.height = height
-        self.tiles = []
-        random.seed(seed)
-
-    def add_tile(self, tile):
-        if isinstance(tile, Tile):
-            self.tiles.append(tile)
-
-    def get_tile_at(self, x, y):
-        for tile in self.tiles:
-            if tile.coordinates == [x, y]:
-                return tile
+def load_image(name):
+    try:
+        if name in IMG_CACHE:
+            return IMG_CACHE[name]
+        path = os.path.join("assets", "img", f"{name}.png")
+        img = Image.open(path).resize((TILE_SIZE, TILE_SIZE))
+        tk_img = ImageTk.PhotoImage(img)
+        IMG_CACHE[name] = tk_img
+        return tk_img
+    except:
         return None
 
-def generate_map(seed):
-    width = 50
-    height = 50
-    game_map = Map(seed, width, height)
-    for y in range(height):
-        for x in range(width):
-            if x == 0 and y == 0:
-                tile_name = "Blank"
-            elif x == width - 1 and y == height - 1:
-                tile_name = "Victory"
-            else:
-                roll = random.randint(0, 99)
-                tile_name = ("Blank" if roll <= 24 else
-                             "Speeder" if roll < 50 else
-                             "Mud" if roll < 75 else
-                             "Lava")
-            game_map.add_tile(Tile(tile_name, [x, y]))
-    return game_map
+def play_sound(name):
+    def inner():
+        try:
+            path = os.path.join("assets", "snd", f"{name}.mp3")
+            playsound(path)
+        except:
+            pass
+    threading.Thread(target=inner, daemon=True).start()
 
-def execute_tile(player, game_map):
-    x, y = player.coordinates
-    tile = game_map.get_tile_at(x, y)
-    if tile:
-        if tile.name == "Blank":
-            player.moves = max(0, player.moves - 1)
-        elif tile.name == "Speeder":
-            player.health = max(0, player.health - 5)
-        elif tile.name == "Mud":
-            player.health = max(0, player.health - 10)
-            player.moves = max(0, player.moves - 5)
-        elif tile.name == "Lava":
-            player.health = max(0, player.health - 50)
-            player.moves = max(0, player.moves - 10)
-        elif tile.name == "Victory":
-            player.moves = max(0, player.moves - 1)
-            if player.moves > 0:
-                messagebox.showinfo("Victory", "You won!")
-                player.active_game = False
-            else:
-                print("Victory tile, but not enough moves.")
-
-    if player.health <= 0 or player.moves <= 0:
-        messagebox.showerror("Game Over", "You lost!")
-        player.active_game = False
-
-class GameApp:
+class GridGame:
     def __init__(self, root):
         self.root = root
-        self.canvas = tk.Canvas(root, width=800, height=800)
+        self.canvas = tk.Canvas(root, width=GRID_SIZE*TILE_SIZE, height=GRID_SIZE*TILE_SIZE)
         self.canvas.pack()
 
-        self.health_var = tk.StringVar()
-        self.moves_var = tk.StringVar()
-        self.coords_var = tk.StringVar()
+        self.restart_button = tk.Button(root, text="Restart Game", command=self.restart_game)
+        self.restart_button.pack(pady=5)
 
-        tk.Label(root, textvariable=self.health_var).pack()
-        tk.Label(root, textvariable=self.moves_var).pack()
-        tk.Label(root, textvariable=self.coords_var).pack()
-        tk.Button(root, text="Restart", command=self.start_game).pack()
+        self.init_game()
 
-        self.images = {k: tk.PhotoImage(file=v) for k, v in TILE_IMAGES.items()}
+        self.root.bind("<KeyPress>", self.handle_key)
 
-        self.canvas.bind_all('<Key>', self.handle_key)
-        self.start_game()
+    def init_game(self):
+        self.health = HEALTH_INIT
+        self.moves = MOVES_INIT
+        self.player_pos = [0, GRID_SIZE // 2]
+        self.goal_pos = [GRID_SIZE - 1, GRID_SIZE // 2]
 
-    def start_game(self):
-        self.seed = random.randint(0, 999999)
-        self.map = generate_map(self.seed)
-        self.player = Player(200, 450, [0, 0])
-        self.render_map()
-        self.update_ui()
+        self.grid = [[random.choice(TILE_TYPES) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+        self.grid[self.player_pos[1]][self.player_pos[0]] = "Blank"
+        self.grid[self.goal_pos[1]][self.goal_pos[0]] = "Goal"
 
-    def update_ui(self):
-        self.health_var.set(f"Health: {self.player.health}")
-        self.moves_var.set(f"Moves: {self.player.moves}")
-        x, y = self.player.coordinates
-        self.coords_var.set(f"Coordinates: [{x}, {y}]")
+        self.draw_grid()
+        self.update_status()
 
-    def render_map(self):
+    def restart_game(self):
+        self.init_game()
+
+    def draw_grid(self):
         self.canvas.delete("all")
-        for tile in self.map.tiles:
-            x, y = tile.coordinates
-            img = self.images[tile.name]
-            self.canvas.create_image(x * TILE_SIZE, y * TILE_SIZE, anchor='nw', image=img)
-        px, py = self.player.coordinates
-        self.canvas.create_image(px * TILE_SIZE, py * TILE_SIZE, anchor='nw', image=self.images['Player'])
+        for y in range(GRID_SIZE):
+            for x in range(GRID_SIZE):
+                tile = self.grid[y][x]
+                img = load_image(tile)
+                if img:
+                    self.canvas.create_image(x*TILE_SIZE, y*TILE_SIZE, anchor='nw', image=img)
+                else:
+                    color = TILE_COLORS.get(tile, "white")
+                    self.canvas.create_rectangle(
+                        x*TILE_SIZE, y*TILE_SIZE,
+                        (x+1)*TILE_SIZE, (y+1)*TILE_SIZE,
+                        fill=color, outline="gray"
+                    )
+
+        px, py = self.player_pos
+        self.canvas.create_rectangle(
+            px*TILE_SIZE, py*TILE_SIZE,
+            (px+1)*TILE_SIZE, (py+1)*TILE_SIZE,
+            fill=TILE_COLORS["Player"]
+        )
+
+    def update_status(self):
+        self.root.title(f"Health: {self.health} | Moves: {self.moves}")
 
     def handle_key(self, event):
-        if not self.player.active_game:
-            return
         dx, dy = 0, 0
-        key = event.keysym
-        shift = bool(event.state & 0x1)
-        ctrl = bool(event.state & 0x4)
+        if event.keysym == "Up": dy = -1
+        elif event.keysym == "Down": dy = 1
+        elif event.keysym == "Left": dx = -1
+        elif event.keysym == "Right": dx = 1
 
-        if shift and key == 'Right': dx, dy = 1, -1
-        elif shift and key == 'Left': dx, dy = -1, -1
-        elif ctrl and key == 'Right': dx, dy = 1, 1
-        elif ctrl and key == 'Left': dx, dy = -1, 1
-        elif key == 'Up': dy = -1
-        elif key == 'Down': dy = 1
-        elif key == 'Left': dx = -1
-        elif key == 'Right': dx = 1
+        if dx != 0:
+            if event.state & 0x0001:  # Shift held
+                dy = -1
+            elif event.state & 0x0004:  # Ctrl held
+                dy = 1
 
-        nx = self.player.coordinates[0] + dx
-        ny = self.player.coordinates[1] + dy
-        if 0 <= nx < self.map.width and 0 <= ny < self.map.height:
-            self.player.coordinates = [nx, ny]
-            execute_tile(self.player, self.map)
-            self.render_map()
-            self.update_ui()
+        self.move(dx, dy)
 
-if __name__ == '__main__':
-    root = tk.Tk()
-    root.title("Assignment One Game - Tkinter Version")
-    app = GameApp(root)
-    root.mainloop()
+    def move(self, dx, dy):
+        if self.health <= 0 or self.moves <= 0:
+            return
+
+        new_x = self.player_pos[0] + dx
+        new_y = self.player_pos[1] + dy
+
+        if not (0 <= new_x < GRID_SIZE and 0 <= new_y < GRID_SIZE):
+            return
+
+        tile = self.grid[new_y][new_x]
+        effects = TILE_EFFECTS.get(tile, {"Health": 0, "Moves": 0})
+        self.health += effects["Health"]
+        self.moves += effects["Moves"]
+        self.player_pos = [new_x, new_y]
+
+        play_sound(tile)
+
+        self.update_status()
+        self.draw_grid()
+
+        if self.player_pos == self.goal_pos:
+            play_sound("Goal")
+            self.end_game("You Win!")
+        elif self.health <= 0 or self.moves <= 0:
+            play_sound("Failure")
+            self.end_game("Game Over!")
+
+    def end_game(self, message):
+        self.canvas.create_text(
+            GRID_SIZE * TILE_SIZE // 2,
+            GRID_SIZE * TILE_SIZE // 2,
+            text=message,
+            font=("Arial", 32),
+            fill="black"
+        )
+        self.root.after(5000, self.restart_game)
