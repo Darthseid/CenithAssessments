@@ -1,6 +1,7 @@
 import tkinter as tk
 import random
 import os
+import json
 from PIL import Image, ImageTk
 import pygame.mixer
 
@@ -28,18 +29,20 @@ TILE_EFFECTS = {
 IMG_CACHE = {}
 SOUND_CACHE = {}
 
+SAVE_PATH = "GridSave.json"
+
 def load_image(name):
     try:
         if name in IMG_CACHE:
             return IMG_CACHE[name]
         path = os.path.join("assets", "img", f"{name}.png")
         if not os.path.exists(path):
-             return None
+            return None
         img = Image.open(path).resize((TILE_SIZE, TILE_SIZE))
         tk_img = ImageTk.PhotoImage(img)
         IMG_CACHE[name] = tk_img
         return tk_img
-    except Exception as e:
+    except:
         return None
 
 def load_sound(name):
@@ -52,7 +55,7 @@ def load_sound(name):
         sound = pygame.mixer.Sound(path)
         SOUND_CACHE[name] = sound
         return sound
-    except Exception as e:
+    except:
         return None
 
 def play_sound(name):
@@ -67,11 +70,17 @@ class GridGame:
         self.canvas.pack()
 
         self.restart_button = tk.Button(root, text="Restart Game", command=self.restart_game)
-        self.restart_button.pack(pady=5)
+        self.restart_button.pack(pady=2)
+
+        self.save_button = tk.Button(root, text="Save Game", command=self.save_game)
+        self.save_button.pack(pady=2)
+
+        self.load_button = tk.Button(root, text="Load Game", command=self.load_game)
+        self.load_button.pack(pady=2)
 
         try:
             pygame.mixer.init()
-        except Exception as e:
+        except:
             pass
 
         self.init_game()
@@ -96,9 +105,33 @@ class GridGame:
         self.canvas.delete("all")
         self.init_game()
 
+    def save_game(self):
+        data = {
+            "grid": self.grid,
+            "player_pos": self.player_pos,
+            "goal_pos": self.goal_pos,
+            "health": self.health,
+            "moves": self.moves
+        }
+        with open(SAVE_PATH, "w") as f:
+            json.dump(data, f)
+
+    def load_game(self):
+        if not os.path.exists(SAVE_PATH):
+            return
+        with open(SAVE_PATH, "r") as f:
+            data = json.load(f)
+        self.grid = data["grid"]
+        self.player_pos = data["player_pos"]
+        self.goal_pos = data["goal_pos"]
+        self.health = data["health"]
+        self.moves = data["moves"]
+        self.game_active = True
+        self.draw_grid()
+        self.update_status()
+
     def draw_grid(self):
         self.canvas.delete("tiles", "player_image")
-
         for y in range(GRID_SIZE):
             for x in range(GRID_SIZE):
                 tile_type = self.grid[y][x]
@@ -112,13 +145,12 @@ class GridGame:
                         (x+1)*TILE_SIZE, (y+1)*TILE_SIZE,
                         fill=color, outline="gray", tags="tiles"
                     )
-
         px, py = self.player_pos
         player_img = load_image("car")
         if player_img:
             self.canvas.create_image(px*TILE_SIZE, py*TILE_SIZE, anchor='nw', image=player_img, tags="player_image")
         else:
-             self.canvas.create_rectangle(
+            self.canvas.create_rectangle(
                 px*TILE_SIZE, py*TILE_SIZE,
                 (px+1)*TILE_SIZE, (py+1)*TILE_SIZE,
                 fill="green", tags="player_image"
@@ -134,37 +166,17 @@ class GridGame:
         dx, dy = 0, 0
         moved = False
 
-        if event.keysym == "Up":
-            dy = -1
-            moved = True
-        elif event.keysym == "Down":
-            dy = 1
-            moved = True
-        elif event.keysym == "Left":
-            dx = -1
-            moved = True
-        elif event.keysym == "Right":
-            dx = 1
-            moved = True
+        if event.keysym == "Up": dy = -1; moved = True
+        elif event.keysym == "Down": dy = 1; moved = True
+        elif event.keysym == "Left": dx = -1; moved = True
+        elif event.keysym == "Right": dx = 1; moved = True
 
         if event.state & 0x0001:
-            if event.keysym == "Right":
-                dx = 1
-                dy = -1
-                moved = True
-            elif event.keysym == "Left":
-                dx = -1
-                dy = -1
-                moved = True
+            if event.keysym == "Right": dx, dy = 1, -1; moved = True
+            elif event.keysym == "Left": dx, dy = -1, -1; moved = True
         elif event.state & 0x0004:
-             if event.keysym == "Right":
-                dx = 1
-                dy = 1
-                moved = True
-             elif event.keysym == "Left":
-                dx = -1
-                dy = 1
-                moved = True
+            if event.keysym == "Right": dx, dy = 1, 1; moved = True
+            elif event.keysym == "Left": dx, dy = -1, 1; moved = True
 
         if moved:
             self.move(dx, dy)
@@ -180,14 +192,13 @@ class GridGame:
             return
 
         tile_type = self.grid[new_y][new_x]
-
         effects = TILE_EFFECTS.get(tile_type, {"Health": 0, "Moves": 0})
+
         self.health += effects["Health"]
         self.moves += effects["Moves"]
         self.player_pos = [new_x, new_y]
 
         play_sound(tile_type)
-
         self.update_status()
         self.draw_grid()
 
@@ -197,14 +208,13 @@ class GridGame:
             else:
                 self.end_game("Game Over! (Out of moves at goal)")
         elif self.health <= 0 or self.moves <= 0:
-             self.end_game("Game Over!")
+            self.end_game("Game Over!")
 
     def end_game(self, message):
         if not self.game_active:
             return
 
         self.game_active = False
-
         if "Win" in message:
             play_sound("Victory")
         else:
