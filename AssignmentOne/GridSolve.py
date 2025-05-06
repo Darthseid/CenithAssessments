@@ -1,4 +1,5 @@
 import heapq #Algorithm import
+import time
 from typing import List, Tuple
 
 tile_cost = {
@@ -8,7 +9,6 @@ tile_cost = {
     "Mud": {"Health": -10, "Moves": -5}, # Constants
 }
 
-
 directions = [ # Directions: 8-connected (vertical, horizontal, diagonal)
     (-1,  0), (1,  0), (0, -1), (0, 1),
     (-1, -1), (-1, 1), (1, -1), (1, 1)
@@ -16,6 +16,13 @@ directions = [ # Directions: 8-connected (vertical, horizontal, diagonal)
 
 def is_within_bounds(x: int, y: int) -> bool:
     return 0 <= x < 50 and 0 <= y < 50
+def generate_random_grid(seed) -> List[List[str]]:
+    random.seed(seed)
+    tiles = ["Blank", "Speeder", "Lava", "Mud"]
+    grid = [[random.choice(tiles) for _ in range(50)] for _ in range(50)]
+    grid[0][0] = "Blank"
+    grid[49][49] = "Blank" #Starting and end tiles are always Blank Type.
+    return grid
 
 def find_best_path(grid: List[List[str]]) -> None: #Modified Djikstra's Algorithm.
     start = (0, 0)
@@ -54,8 +61,5 @@ def find_best_path(grid: List[List[str]]) -> None: #Modified Djikstra's Algorith
     print("Victory is Impossible") #You won't make it to the finish line.
 
 if __name__ == "__main__":
-    test_grid = [["Blank"] * 50 for _ in range(50)]
-    test_grid[0][1] = "Mud"
-    test_grid[1][1] = "Speeder"
-    test_grid[49][49] = "Blank"
-    find_best_path(test_grid)
+    generated_grid = generate_random_grid(time.time()) #Change this to a fixed value for reproducing grids.
+    find_best_path(generated_grid)
