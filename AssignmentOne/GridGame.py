@@ -11,7 +11,7 @@ HEALTH_INIT = 200
 MOVES_INIT = 450
 
 TILE_TYPES = ["Blank", "Speeder", "Lava", "Mud"]
-TILE_COLORS = {
+TILE_COLORS = { #You will only see these colors if the image is missing.
     "Blank": "white",
     "Speeder": "blue",
     "Lava": "red",
@@ -26,10 +26,8 @@ TILE_EFFECTS = {
     "Mud": {"Health": -10, "Moves": -5},
 }
 
-IMG_CACHE = {}
-SOUND_CACHE = {}
-
-SAVE_PATH = "GridSave.json"
+IMG_CACHE = {} 
+SOUND_CACHE = {} #Caching pics and audio is good practice.
 
 def load_image(name):
     try:
@@ -42,7 +40,7 @@ def load_image(name):
         tk_img = ImageTk.PhotoImage(img)
         IMG_CACHE[name] = tk_img
         return tk_img
-    except:
+    except Exception:
         return None
 
 def load_sound(name):
@@ -55,7 +53,7 @@ def load_sound(name):
         sound = pygame.mixer.Sound(path)
         SOUND_CACHE[name] = sound
         return sound
-    except:
+    except Exception:
         return None
 
 def play_sound(name):
@@ -63,7 +61,8 @@ def play_sound(name):
     if sound:
         sound.play()
 
-class GridGame:
+
+class GridGame: # These classes could be in their own files, but I wanted to keep it simple.
     def __init__(self, root):
         self.root = root
         self.canvas = tk.Canvas(root, width=GRID_SIZE*TILE_SIZE, height=GRID_SIZE*TILE_SIZE)
@@ -79,14 +78,15 @@ class GridGame:
         self.load_button.pack(pady=2)
 
         try:
-            pygame.mixer.init()
-        except:
+            pygame.mixer.init() #I tried PlaySound, but it wouldn't work on my machine.
+        except Exception:
             pass
 
+        # Start the game
         self.init_game()
+        self.root.bind("<KeyPress>", self.handle_key) #This captures the keyboard.
 
-        self.root.bind("<KeyPress>", self.handle_key)
-
+    # Set up initial game state
     def init_game(self):
         self.health = HEALTH_INIT
         self.moves = MOVES_INIT
@@ -94,7 +94,7 @@ class GridGame:
         self.goal_pos = [GRID_SIZE - 1, GRID_SIZE - 1]
         self.game_active = True
 
-        self.grid = [[random.choice(TILE_TYPES) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+        self.grid = [[random.choice(TILE_TYPES) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)] #All options are equally likely to be chosen. 25% Except for start and finish.
         self.grid[self.player_pos[1]][self.player_pos[0]] = "Blank"
         self.grid[self.goal_pos[1]][self.goal_pos[0]] = "Goal"
 
@@ -111,27 +111,29 @@ class GridGame:
             "player_pos": self.player_pos,
             "goal_pos": self.goal_pos,
             "health": self.health,
-            "moves": self.moves
+            "moves": self.moves,
         }
-        with open(SAVE_PATH, "w") as f:
+        with open("GridSave.json", "w") as f: #JSON is ideal for simple key-value pairs like this.
             json.dump(data, f)
 
     def load_game(self):
-        if not os.path.exists(SAVE_PATH):
-            return
-        with open(SAVE_PATH, "r") as f:
-            data = json.load(f)
-        self.grid = data["grid"]
-        self.player_pos = data["player_pos"]
-        self.goal_pos = data["goal_pos"]
-        self.health = data["health"]
-        self.moves = data["moves"]
-        self.game_active = True
-        self.draw_grid()
-        self.update_status()
+        try:
+            with open("GridSave.json", "r") as f: 
+                data = json.load(f)
+            self.grid = data["grid"]
+            self.player_pos = data["player_pos"]
+            self.goal_pos = data["goal_pos"] #This is normally a fixed value, but I save it for fun modifications.
+            self.health = data["health"]
+            self.moves = data["moves"]
+            self.game_active = True
+            self.draw_grid()
+            self.update_status()
+        except Exception:
+            pass
 
     def draw_grid(self):
         self.canvas.delete("tiles", "player_image")
+
         for y in range(GRID_SIZE):
             for x in range(GRID_SIZE):
                 tile_type = self.grid[y][x]
@@ -145,6 +147,7 @@ class GridGame:
                         (x+1)*TILE_SIZE, (y+1)*TILE_SIZE,
                         fill=color, outline="gray", tags="tiles"
                     )
+
         px, py = self.player_pos
         player_img = load_image("car")
         if player_img:
@@ -158,7 +161,6 @@ class GridGame:
 
     def update_status(self):
         self.root.title(f"Health: {self.health} | Moves: {self.moves} | Pos: ({self.player_pos[0]}, {self.player_pos[1]})")
-
     def handle_key(self, event):
         if not self.game_active:
             return
@@ -166,22 +168,24 @@ class GridGame:
         dx, dy = 0, 0
         moved = False
 
-        if event.keysym == "Up": dy = -1; moved = True
+        if event.keysym == "Up": dy = -1; moved = True #You start at the top of the grid. Up moves you away from the goal.
         elif event.keysym == "Down": dy = 1; moved = True
-        elif event.keysym == "Left": dx = -1; moved = True
+        elif event.keysym == "Left": dx = -1; moved = True #You start at the left of the grid. Left moves you away from the goal.
         elif event.keysym == "Right": dx = 1; moved = True
 
-        if event.state & 0x0001:
+        
+        if event.state & 0x0001: #Shift key held down moves you Northwest and Northeast.
             if event.keysym == "Right": dx, dy = 1, -1; moved = True
             elif event.keysym == "Left": dx, dy = -1, -1; moved = True
-        elif event.state & 0x0004:
+        elif event.state & 0x0004: #Control key held down moves you Southwest and Southeast.
             if event.keysym == "Right": dx, dy = 1, 1; moved = True
             elif event.keysym == "Left": dx, dy = -1, 1; moved = True
 
         if moved:
             self.move(dx, dy)
 
-    def move(self, dx, dy):
+    
+    def move(self, dx, dy): #This also handles Tile Effects.
         if not self.game_active:
             return
 
@@ -193,7 +197,6 @@ class GridGame:
 
         tile_type = self.grid[new_y][new_x]
         effects = TILE_EFFECTS.get(tile_type, {"Health": 0, "Moves": 0})
-
         self.health += effects["Health"]
         self.moves += effects["Moves"]
         self.player_pos = [new_x, new_y]
@@ -215,6 +218,7 @@ class GridGame:
             return
 
         self.game_active = False
+
         if "Win" in message:
             play_sound("Victory")
         else:
