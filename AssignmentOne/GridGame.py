@@ -4,6 +4,7 @@ import os
 import json
 from PIL import Image, ImageTk
 import pygame.mixer
+import heapq
 
 GRID_SIZE = 50
 TILE_SIZE = 10
@@ -11,7 +12,7 @@ HEALTH_INIT = 200
 MOVES_INIT = 450
 
 TILE_TYPES = ["Blank", "Speeder", "Lava", "Mud"]
-TILE_COLORS = { #You will only see these colors if the image is missing.
+TILE_COLORS = {
     "Blank": "white",
     "Speeder": "blue",
     "Lava": "red",
@@ -26,8 +27,8 @@ TILE_EFFECTS = {
     "Mud": {"Health": -10, "Moves": -5},
 }
 
-IMG_CACHE = {} 
-SOUND_CACHE = {} #Caching pics and audio is good practice.
+IMG_CACHE = {}
+SOUND_CACHE = {}
 
 def load_image(name):
     try:
@@ -61,8 +62,7 @@ def play_sound(name):
     if sound:
         sound.play()
 
-
-class GridGame: # These classes could be in their own files, but I wanted to keep it simple.
+class GridGame:
     def __init__(self, root):
         self.root = root
         self.canvas = tk.Canvas(root, width=GRID_SIZE*TILE_SIZE, height=GRID_SIZE*TILE_SIZE)
@@ -77,16 +77,17 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
         self.load_button = tk.Button(root, text="Load Game", command=self.load_game)
         self.load_button.pack(pady=2)
 
+        self.solution_button = tk.Button(root, text="Show Solution", command=self.find_best_path)
+        self.solution_button.pack(pady=2)
+
         try:
-            pygame.mixer.init() #I tried PlaySound, but it wouldn't work on my machine.
+            pygame.mixer.init()
         except Exception:
             pass
 
-        # Start the game
         self.init_game()
-        self.root.bind("<KeyPress>", self.handle_key) #This captures the keyboard.
+        self.root.bind("<KeyPress>", self.handle_key)
 
-    # Set up initial game state
     def init_game(self):
         self.health = HEALTH_INIT
         self.moves = MOVES_INIT
@@ -94,7 +95,7 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
         self.goal_pos = [GRID_SIZE - 1, GRID_SIZE - 1]
         self.game_active = True
 
-        self.grid = [[random.choice(TILE_TYPES) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)] #All options are equally likely to be chosen. 25% Except for start and finish.
+        self.grid = [[random.choice(TILE_TYPES) for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
         self.grid[self.player_pos[1]][self.player_pos[0]] = "Blank"
         self.grid[self.goal_pos[1]][self.goal_pos[0]] = "Goal"
 
@@ -113,16 +114,16 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
             "health": self.health,
             "moves": self.moves,
         }
-        with open("GridSave.json", "w") as f: #JSON is ideal for simple key-value pairs like this.
+        with open("GridSave.json", "w") as f:
             json.dump(data, f)
 
     def load_game(self):
         try:
-            with open("GridSave.json", "r") as f: 
+            with open("GridSave.json", "r") as f:
                 data = json.load(f)
             self.grid = data["grid"]
             self.player_pos = data["player_pos"]
-            self.goal_pos = data["goal_pos"] #This is normally a fixed value, but I save it for fun modifications.
+            self.goal_pos = data["goal_pos"]
             self.health = data["health"]
             self.moves = data["moves"]
             self.game_active = True
@@ -133,7 +134,6 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
 
     def draw_grid(self):
         self.canvas.delete("tiles", "player_image")
-
         for y in range(GRID_SIZE):
             for x in range(GRID_SIZE):
                 tile_type = self.grid[y][x]
@@ -143,24 +143,25 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
                 else:
                     color = TILE_COLORS.get(tile_type, "white")
                     self.canvas.create_rectangle(
-                        x*TILE_SIZE, y*TILE_SIZE,
-                        (x+1)*TILE_SIZE, (y+1)*TILE_SIZE,
+                        x*TILE_SIZE, y*TILE_SIZE, (x+1)*TILE_SIZE, (y+1)*TILE_SIZE,
                         fill=color, outline="gray", tags="tiles"
                     )
-
         px, py = self.player_pos
         player_img = load_image("car")
         if player_img:
             self.canvas.create_image(px*TILE_SIZE, py*TILE_SIZE, anchor='nw', image=player_img, tags="player_image")
         else:
             self.canvas.create_rectangle(
-                px*TILE_SIZE, py*TILE_SIZE,
-                (px+1)*TILE_SIZE, (py+1)*TILE_SIZE,
+                px*TILE_SIZE, py*TILE_SIZE, (px+1)*TILE_SIZE, (py+1)*TILE_SIZE,
                 fill="green", tags="player_image"
             )
 
     def update_status(self):
         self.root.title(f"Health: {self.health} | Moves: {self.moves} | Pos: ({self.player_pos[0]}, {self.player_pos[1]})")
+
+    def move_player(self, dx, dy):
+        self.move(dx, dy)
+
     def handle_key(self, event):
         if not self.game_active:
             return
@@ -168,24 +169,22 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
         dx, dy = 0, 0
         moved = False
 
-        if event.keysym == "Up": dy = -1; moved = True #You start at the top of the grid. Up moves you away from the goal.
+        if event.keysym == "Up": dy = -1; moved = True
         elif event.keysym == "Down": dy = 1; moved = True
-        elif event.keysym == "Left": dx = -1; moved = True #You start at the left of the grid. Left moves you away from the goal.
+        elif event.keysym == "Left": dx = -1; moved = True
         elif event.keysym == "Right": dx = 1; moved = True
 
-        
-        if event.state & 0x0001: #Shift key held down moves you Northwest and Northeast.
+        if event.state & 0x0001:
             if event.keysym == "Right": dx, dy = 1, -1; moved = True
             elif event.keysym == "Left": dx, dy = -1, -1; moved = True
-        elif event.state & 0x0004: #Control key held down moves you Southwest and Southeast.
+        elif event.state & 0x0004:
             if event.keysym == "Right": dx, dy = 1, 1; moved = True
             elif event.keysym == "Left": dx, dy = -1, 1; moved = True
 
         if moved:
             self.move(dx, dy)
 
-    
-    def move(self, dx, dy): #This also handles Tile Effects.
+    def move(self, dx, dy):
         if not self.game_active:
             return
 
@@ -218,12 +217,7 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
             return
 
         self.game_active = False
-
-        if "Win" in message:
-            play_sound("Victory")
-        else:
-            play_sound("Failure")
-
+        play_sound("Victory" if "Win" in message else "Failure")
         self.canvas.create_text(
             GRID_SIZE * TILE_SIZE // 2,
             GRID_SIZE * TILE_SIZE // 2,
@@ -232,6 +226,44 @@ class GridGame: # These classes could be in their own files, but I wanted to kee
             fill="black"
         )
         self.root.after(5000, self.restart_game)
+
+    def find_best_path(self):
+        start = tuple(self.player_pos)
+        goal = tuple(self.goal_pos)
+        heap = [(-HEALTH_INIT, -MOVES_INIT, start[0], start[1], [start])]
+        visited = set()
+        best_score = -1
+        best_path = []
+
+        while heap:
+            neg_h, neg_m, x, y, path = heapq.heappop(heap)
+            h, m = -neg_h, -neg_m
+
+            if (x, y) == goal and h > 0 and m >= 0:
+                best_score = h + m
+                best_path = path
+                break
+
+            if (x, y) in visited:
+                continue
+            visited.add((x, y))
+
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE and (nx, ny) not in path:
+                    tile = self.grid[ny][nx]
+                    cost = TILE_EFFECTS.get(tile, {"Health": 0, "Moves": 0})
+                    nh, nm = h + cost["Health"], m + cost["Moves"]
+                    if nh > 0 and nm >= 0:
+                        heapq.heappush(heap, (-nh, -nm, nx, ny, path + [(nx, ny)]))
+
+        if best_path:
+            print("Best path to goal:")
+            for step in best_path:
+                print(step)
+            print(f"Health remaining: {h}, Moves remaining: {m}")
+        else:
+            print("Victory is Impossible")
 
 if __name__ == "__main__":
     root = tk.Tk()
