@@ -1,4 +1,4 @@
-# CenithAssessments
+# Hello Cenith Innovations!
 This Repository was created by Jared McVey to fulfill the Assignments given by Cenith Innovations. Technically, only one assignment was necessary; but I loved the challenge so I took the extra time to perform all three of them. Assignment One was completed in HTML/Javascript while Assignment Two & Three used Python. Stock tile images and sound effects were used to enhance the fun.
 
 To play each game, download the repo and use the arrow keys as instructed. GridGame.py and McVeyAssignmentOne.html are the executable files. Holding Shift and loving left and right also moves the player (car icon) upward. Holding Ctrl while moving left or right also moves the player (car) downward. The Python game requires Python 3. Also check the console when using the Solver for the Python game.
