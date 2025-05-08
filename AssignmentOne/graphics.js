@@ -51,7 +51,7 @@ let gamePlayer; // Global game objects
 
 function StartGame() 
 {
-    seed = Date.now(); // Use fresh seed
+    seed = Date.now(); // Use fresh seed based on current system time.
     gameMap = generateMap(seed);
     gamePlayer = initializePlayer();
     renderMap(gameMap, gamePlayer);
@@ -82,8 +82,8 @@ function handlePlayerMovement(event)
     let deltaY = 0;
     let moved = false;
 
-    // Determine movement direction based on key and modifiers
-    if (isShift && key === 'ArrowRight') 
+    
+    if (isShift && key === 'ArrowRight')  // Determine movement direction based on key and modifiers
 	{
         deltaX = 1;
         deltaY = -1; // Northeast
@@ -105,8 +105,8 @@ function handlePlayerMovement(event)
         moved = true;
     } else if (!isShift && !isCtrl) 
 	{
-        // Handle cardinal movements only if no Shift or Ctrl is held
-        if (key === 'ArrowUp') 
+       
+        if (key === 'ArrowUp')   // Orthogonal Movement
 		{
             deltaY = -1;
             moved = true;

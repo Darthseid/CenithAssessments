@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head> <!-- Obviously, neither game won't work on mobile devices or tablets. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assignment One</title>
     <style>
-        body
-		{
+        body {
             font-family: Arial, Helvetica, sans-serif;
             display: flex;
             flex-direction: column;
@@ -16,23 +15,22 @@
             margin: 0;
             background-color: #f0f0f0;
         }
-        #game-container 
-		{
+
+        #game-container {
             background-color: #fff;
             padding: 4em;
             border-radius: 2em;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
-        #player-stats 
-		{
+
+        #player-stats {
             margin-top: 20px;
             font-size: 1.1em;
-			font-family: "Lucida", Courier, monospace;
-
+            font-family: "Lucida", Courier, monospace;
         }
-        #map-representation 
-		{
+
+        #map-representation {
             margin-top: 20px;
             font-family: 'Courier New', Courier, monospace;
             white-space: pre; /* Preserve whitespace for grid layout */
@@ -43,7 +41,7 @@
             max-width: 70% /* Increased width for 50x50 map view */
             max-height: 70% /* Increased height */
             overflow: auto; /* Add scroll if map is larger than container */
-             line-height: 0.9; /* Reduce line height to fit more */
+            line-height: 0.9; /* Reduce line height to fit more */
         }
     </style>
 </head>

@@ -27,7 +27,7 @@ function executeTile(player, map)
         player.moves = Math.max(0, player.moves - 1); // Ensure moves don't go below zero
         console.log("Moves reduced by 1.");
         break;
-      case "Speeder": // Note: Case names should match tile names generated in generateMap
+      case "Speeder": 
         playSound('speeding.mp3'); 
         player.health = Math.max(0, player.health - 5); // Ensure health doesn't go below zero
         console.log("Health reduced by 5.");
@@ -39,7 +39,7 @@ function executeTile(player, map)
         console.log("Health reduced by 50, Moves reduced by 10.");
         break;
       case "Mud": 
-        playSound('dirtpath.mp3'); // Play sound
+        playSound('dirtpath.mp3'); 
         player.health = Math.max(0, player.health - 10);
         player.moves = Math.max(0, player.moves - 5);
         console.log("Health reduced by 10, Moves reduced by 5.");
@@ -61,7 +61,7 @@ function executeTile(player, map)
   {
     console.log("Player is not on a recognized tile.");
   }
- updatePlayerStatsDisplay(gamePlayer); // Use the global gamePlayer object
+ updatePlayerStatsDisplay(gamePlayer); 
   if (player.health <= 0 || player.moves <= 0) 
   {
     gameOver(player); // Pass player to gameOver function
@@ -88,12 +88,12 @@ function victory(player)
 function gameOver(player)
  {
   player.activeGame = false;
-  playSound('failure.mp3'); // Play victory sound
+  playSound('failure.mp3'); 
   alert("Game Over");
   setTimeout(() => 
   {
-	StartGame(); // Refreshes the page
-  }, 5000); // 5000 milliseconds = 5 seconds
+	StartGame();
+  }, 5000); 
 }
 
 /**
@@ -156,6 +156,6 @@ function playSound(soundFile)
     const audio = new Audio(soundFile);
     audio.play().catch(error => 
 	{
-        console.error("Error playing sound:", soundFile, error); // This catch is important because browsers might block autoplay  until the user interacts with the page.
+        console.error("Error playing sound:", soundFile, error); // This catch is important because browsers might block autoplay until the user interacts with the page.
     });
 }
