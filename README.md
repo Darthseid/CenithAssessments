@@ -10,9 +10,13 @@ In a 50 by 50 2-D grid world, you are given a starting point A on one side of th
 
 [
   “Blank”: {“Health”: 0, “Moves”: -1},
+
   “Speeder”: {“Health”: -5, “Moves”: 0},
+
   “Lava”: {“Health”: -50, “Moves”: -10},
+
   “Mud”: {“Health”: -10, “Moves”: -5},
+
 ]
 
 Assignment 1
